@@ -3,6 +3,8 @@ import pandas_datareader as web
 import math
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow import keras
+from tensorflow.keras.layers import LSTM, Dense
 
 
 def show_diagram(x_axis_tag, y_axis_tag, data_):
@@ -46,6 +48,18 @@ def create_training_dataset():
     return x_train_, y_train_
 
 
+def build_LSTM():
+    model = keras.Sequential()
+    model.add(LSTM(50, return_sequences=True))
+    model.add(LSTM(50, return_sequences=True))
+    model.add(Dense(25))
+    model.add(Dense(1))
+
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(x_train, y_train, batch_size=1, epochs=1)
+
+
+
 if __name__ == '__main__':
     # getting the stock quote and visualizing some of the data
     df = web.DataReader('AAPL', data_source='yahoo', start='2012-01-01', end='2021-04-11')
@@ -60,4 +74,7 @@ if __name__ == '__main__':
     x_train, y_train = create_training_dataset()
     x_train, y_train = np.array(x_train), np.array(y_train)
 
+    # reshaping the data because LSTM model expects 3 cols and not two
+    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 
+    build_LSTM()
