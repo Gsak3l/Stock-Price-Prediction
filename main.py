@@ -48,16 +48,29 @@ def create_training_dataset():
     return x_train_, y_train_
 
 
+def create_test_dataset():
+    test_data = scaled_data[training_data_len - 60:, :]
+    x_test_ = []
+    y_test = dataset[training_data_len:, :]
+
+    for i in range(60, len(test_data)):
+        x_test_.append(test_data[i - 60: i, 0])
+
+    x_test_ = np.array(x_test_)
+    return x_test_
+
+
 def build_LSTM():
-    model = keras.Sequential()
-    model.add(LSTM(50, return_sequences=True))
-    model.add(LSTM(50, return_sequences=True))
-    model.add(Dense(25))
-    model.add(Dense(1))
+    model_ = keras.Sequential()
+    model_.add(LSTM(50, return_sequences=True))
+    model_.add(LSTM(50, return_sequences=True))
+    model_.add(Dense(25))
+    model_.add(Dense(1))
 
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(x_train, y_train, batch_size=1, epochs=1)
+    model_.compile(optimizer='adam', loss='mean_squared_error')
+    model_.fit(x_train, y_train, batch_size=1, epochs=1)
 
+    return model_
 
 
 if __name__ == '__main__':
@@ -77,4 +90,8 @@ if __name__ == '__main__':
     # reshaping the data because LSTM model expects 3 cols and not two
     x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 
-    build_LSTM()
+    model = build_LSTM()
+
+    # reshaping the data because LSTM model expects 3 cols and not two
+    x_test = create_test_dataset()
+    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
