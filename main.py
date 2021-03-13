@@ -26,9 +26,9 @@ def optimize_dataframe():
 
 
 def scaled_data(dataset_):
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data_ = scaler.fit_transform(dataset_)
-    return scaled_data_
+    scaler_ = MinMaxScaler(feature_range=(0, 1))
+    scaled_data_ = scaler_.fit_transform(dataset_)
+    return scaled_data_, scaler_
 
 
 def create_training_dataset():
@@ -51,13 +51,13 @@ def create_training_dataset():
 def create_test_dataset():
     test_data = scaled_data[training_data_len - 60:, :]
     x_test_ = []
-    y_test = dataset[training_data_len:, :]
+    y_test_ = dataset[training_data_len:, :]
 
     for i in range(60, len(test_data)):
         x_test_.append(test_data[i - 60: i, 0])
 
     x_test_ = np.array(x_test_)
-    return x_test_
+    return x_test_, y_test_
 
 
 def build_LSTM():
@@ -73,6 +73,15 @@ def build_LSTM():
     return model_
 
 
+def get_predictions_rmse():
+    predictions_ = model.predict(x_test)
+    predictions_ = scaler.inverse_transform(predictions_)  # unscaling the values
+
+    # get the root mean squared error (RMSE)
+    rmse_ = np.sqrt(np.mean(predictions_ - y_test))
+    return predictions_, rmse_
+
+
 if __name__ == '__main__':
     # getting the stock quote and visualizing some of the data
     df = web.DataReader('AAPL', data_source='yahoo', start='2012-01-01', end='2021-04-11')
@@ -82,7 +91,7 @@ if __name__ == '__main__':
 
     training_data_len, dataset = optimize_dataframe()
 
-    scaled_data = scaled_data(dataset)
+    scaled_data, scaler = scaled_data(dataset)
 
     x_train, y_train = create_training_dataset()
     x_train, y_train = np.array(x_train), np.array(y_train)
@@ -93,5 +102,7 @@ if __name__ == '__main__':
     model = build_LSTM()
 
     # reshaping the data because LSTM model expects 3 cols and not two
-    x_test = create_test_dataset()
+    x_test, y_test = create_test_dataset()
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+
+    predictions, rmse = get_predictions_rmse()
