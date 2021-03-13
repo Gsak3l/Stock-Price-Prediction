@@ -7,10 +7,10 @@ from tensorflow import keras
 from tensorflow.keras.layers import LSTM, Dense
 
 
-def show_diagram(x_axis_tag, y_axis_tag, data_):
+def show_diagram(title, x_axis_tag, y_axis_tag, data_):
     plt.style.use('fivethirtyeight')
     plt.figure(figsize=(16, 8))
-    plt.title('Close Price History')
+    plt.title(title)
     plt.plot(data_)
     plt.xlabel(x_axis_tag, fontsize=18)
     plt.ylabel(y_axis_tag, fontsize=18)
@@ -19,10 +19,10 @@ def show_diagram(x_axis_tag, y_axis_tag, data_):
 
 def optimize_dataframe():
     # keeping just the close column
-    data = df.filter(['Close'])
-    dataset_ = data.values
+    data_ = df.filter(['Close'])
+    dataset_ = data_.values
     training_data_len_ = math.ceil(len(dataset_) * 0.8)
-    return training_data_len_, dataset_
+    return training_data_len_, dataset_, data_
 
 
 def scaled_data(dataset_):
@@ -75,21 +75,41 @@ def build_LSTM():
 
 def get_predictions_rmse():
     predictions_ = model.predict(x_test)
-    predictions_ = scaler.inverse_transform(predictions_)  # unscaling the values
 
-    # get the root mean squared error (RMSE)
-    rmse_ = np.sqrt(np.mean(predictions_ - y_test))
-    return predictions_, rmse_
+    try:
+        predictions_ = scaler.inverse_transform(predictions_)
+
+        # getting the root mean squared error RMSE)
+        rmse_ = np.sqrt(np.mean(predictions_ - y_test) ** 2)
+        return predictions_, rmse_
+    except:
+        pass
+    return 0, 0
+
+
+def plot_data():
+    train = data[:training_data_len]
+    valid = data[training_data_len:]
+    valid['Predictions'] = predictions
+
+    # visualize the data, my function show_diagram() is completely useless
+    plt.figure(figsize=(16, 8))
+    plt.title('Model')
+    plt.xlabel('Date', fontsize=18)
+    plt.ylabel('Close Price USD ($)', fontsize=18)
+    plt.plot(train['Close'])
+    plt.plot(valid[['Close', 'Predictions']])
+    plt.legend(['Train', 'Val', 'Predictions'], loc='lower right')
+    plt.show()
 
 
 if __name__ == '__main__':
     # getting the stock quote and visualizing some of the data
     df = web.DataReader('AAPL', data_source='yahoo', start='2012-01-01', end='2021-04-11')
-    print(df.shape)
 
-    show_diagram('Date', 'Close Price USD ($)', df['Close'])
+    show_diagram('Close Price History', 'Date', 'Close Price USD ($)', df['Close'])
 
-    training_data_len, dataset = optimize_dataframe()
+    training_data_len, dataset, data = optimize_dataframe()
 
     scaled_data, scaler = scaled_data(dataset)
 
@@ -101,8 +121,10 @@ if __name__ == '__main__':
 
     model = build_LSTM()
 
-    # reshaping the data because LSTM model expects 3 cols and not two
     x_test, y_test = create_test_dataset()
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+    # reshaping the data because LSTM model expects 3 cols and not two
+    x_test_2 = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
     predictions, rmse = get_predictions_rmse()
+
+    plot_data()
