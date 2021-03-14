@@ -75,16 +75,11 @@ def build_LSTM():
 
 def get_predictions_rmse():
     predictions_ = model.predict(x_test)
+    predictions_ = scaler.inverse_transform(predictions_)
 
-    try:
-        predictions_ = scaler.inverse_transform(predictions_)
-
-        # getting the root mean squared error RMSE)
-        rmse_ = np.sqrt(np.mean(predictions_ - y_test) ** 2)
-        return predictions_, rmse_
-    except:
-        pass
-    return 0, 0
+    # getting the root mean squared error RMSE)
+    rmse_ = np.sqrt(np.mean(predictions_ - y_test) ** 2)
+    return predictions_, rmse_
 
 
 def plot_data():
@@ -123,8 +118,31 @@ if __name__ == '__main__':
 
     x_test, y_test = create_test_dataset()
     # reshaping the data because LSTM model expects 3 cols and not two
-    x_test_2 = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
 
     predictions, rmse = get_predictions_rmse()
 
     plot_data()
+
+    apple_quote = web.DataReader('AAPL', data_source='yahoo', start='2012-01-01', end='2021-04-11')
+    new_df = apple_quote.filter((['Close']))
+
+    # get the last 60 day closing price values and convert the dataframe to an array
+    last_60 = new_df[-60].values
+    last_60_scaled = scaler.transform(last_60)
+
+    # appending the last 60 days
+    x_test_2 = [last_60_scaled]
+    x_test_2 = np.array(x_test_2)
+    x_test_2 = np.reshape(x_test_2, (x_test.shape[0], x_test_2[1], 1))
+
+    # predicted prices
+    predicted_price = model.predict(x_test_2)
+    predicted_price = scaler.inverse_transform(predicted_price)
+    print(predicted_price)
+
+""""
+Description: This program uses an artificial recurrent network called Long Short Term Memory (LSTM)
+to predict the closing stock price of a corporation (in this case Apple Inc.) using the past 60 day stock price
+as input data
+"""
